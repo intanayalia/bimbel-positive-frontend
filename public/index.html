@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bimbel Positif</title>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // 1. Warna-warna Anda
+                    colors: {
+                        'brand-dark': '#800000', 
+                        'brand-dark-accent': '#6B0F1A', 
+                        'brand-light-bg': '#FFFBFB', 
+                        'brand-icon-bg': '#EBC4C4',
+                        'brand-beige-bg': '#FBF6F0',     
+                        'brand-beige-header': '#F5EBE0', 
+                    },
+                    // 2. Keyframes (Gerakan Animasi)
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' }, // Naik 20px ke atas
+                        }
+                    },
+                    // 3. Animation (Durasi & Tipe)
+                    animation: {
+                        float: 'float 3s ease-in-out infinite', // Durasi 3 detik, berulang selamanya
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-brand-light-bg font-sans">
+    <div id="root"></div>
+</body>
+</html>
