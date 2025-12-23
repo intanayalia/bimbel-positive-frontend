@@ -74,8 +74,9 @@ export default function NavigasiSiswa() {
                         <Link to="/rekap" className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white pb-0.5">
                             Rekap
                         </Link>
-                        {/* Contoh link logout cepat untuk dev */}
-                        {/* <button onClick={handleLogout} className="text-red-300">Test Logout</button> */}
+                        <Link to="/historypembayaran" className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white pb-0.5">
+                            Pembayaran
+                        </Link>
                     </nav>
                 </div>
                 <div className="flex items-center gap-6">

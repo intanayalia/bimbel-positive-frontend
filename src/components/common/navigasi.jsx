@@ -22,8 +22,8 @@ export default function Navigasi() {
                         <Link to="/pricing" className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white pb-0.5">
                             Daftar Paket
                         </Link>
-                        <Link to="/pembayaran" className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white pb-0.5">
-                            Pembayaran
+                        <Link to="/aboutus" className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white pb-0.5">
+                            About Us
                         </Link>
                     </nav>
 

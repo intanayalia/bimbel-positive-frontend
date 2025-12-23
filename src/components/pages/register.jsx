@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../../api'; // Import API config
+import api from '../../api'; // Pastikan path ini sesuai dengan struktur folder Anda
 
 export default function Register() {
     const navigate = useNavigate();
 
     // 1. STATE MANAGEMENT
     const [formData, setFormData] = useState({
-        namaLengkap: '',  // Pengganti Username sebagai input nama
+        namaLengkap: '',  // Input di form menggunakan 'namaLengkap'
         email: '',
         nomorTelepon: '',
         password: '',
@@ -48,13 +48,14 @@ export default function Register() {
         setErrorMsg('');
 
         try {
-            // Mengirim data ke Laravel
-            // Key object ini harus sesuai dengan validasi di AuthController.php
+            // === PERBAIKAN DI SINI ===
+            // Mapping data dari State Frontend -> Key yang diminta Backend (Laravel)
             await api.post('/register', {
-                namaLengkap: formData.namaLengkap,
+                name: formData.namaLengkap,      // Backend butuh 'name', kita kirim dari 'namaLengkap'
                 email: formData.email,
-                nomorTelepon: formData.nomorTelepon,
-                password: formData.password
+                phone: formData.nomorTelepon,    // Backend butuh 'phone' (jika sudah diupdate)
+                password: formData.password,
+                role: 'student'                  // Set default role sebagai student
             });
             
             setLoading(false);
@@ -71,6 +72,8 @@ export default function Register() {
                 const firstErrorKey = Object.keys(error.response.data.errors)[0];
                 const firstErrorMessage = error.response.data.errors[firstErrorKey][0];
                 setErrorMsg(firstErrorMessage);
+            } else if (error.response && error.response.data.message) {
+                 setErrorMsg(error.response.data.message);
             } else {
                 setErrorMsg("Gagal mendaftar. Silakan coba lagi.");
             }
