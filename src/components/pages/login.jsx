@@ -45,9 +45,9 @@ export default function Login() {
             // D. Logika Redirect Berdasarkan Role (INI YANG DIPERBAIKI)
             // Pastikan string role ('admin', 'guru', 'student') sama persis dengan di Database
             if (user.role === 'admin') {
-                navigate('/dashboardadmin'); 
+                navigate('/admin/dashboard'); 
             } else if (user.role === 'guru') {
-                navigate('/dashboardguru');
+                navigate('/dashboard-guru');
             } else if (user.role === 'student') {
                 navigate('/dashboard');
             } else {

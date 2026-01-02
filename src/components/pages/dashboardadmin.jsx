@@ -1,32 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import NavigasiAdmin from '../common/navigasiadmin'; 
 import api from '../../api'; 
-import { Search, Bell, ChevronDown, ChevronRight, Users, BookOpen, Calendar, LogOut, Loader2 } from 'lucide-react';
+import { Users, BookOpen, Calendar, TrendingUp, Loader2, User, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardAdmin = () => {
   const navigate = useNavigate();
 
-  // STATE MANAGEMENT
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // ==========================================
+  // 1. STATE MANAGEMENT
+  // ==========================================
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('Admin');
 
-  // State Data Statistik
+  // State Statistik (Card Atas)
   const [stats, setStats] = useState({
     totalPengajar: 0,
     totalSiswa: 0,
     totalPaket: 0,
-    absenHariIni: "0"
+    absenHariIni: 0
   });
   
+  // State Data Tabel (Bawah)
   const [newestTeachers, setNewestTeachers] = useState([]);
   const [newestStudents, setNewestStudents] = useState([]);
 
+  // ==========================================
+  // 2. FETCH DATA DARI API
+  // ==========================================
   useEffect(() => {
-    console.log("--- MEMULAI FETCH DATA DASHBOARD ---"); // CEK CONSOLE
     fetchDashboardData();
     
+    // Ambil nama admin dari localStorage (jika ada)
     const userInfo = JSON.parse(localStorage.getItem('user_info'));
     if (userInfo && userInfo.name) {
         setUserName(userInfo.name);
@@ -36,138 +41,170 @@ const DashboardAdmin = () => {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // DEBUG: Cek apakah token ada
-      const token = localStorage.getItem('auth_token');
-      console.log("Token saat ini:", token ? "ADA" : "TIDAK ADA");
+      // Panggil Endpoint: /admin/stats
+      const response = await api.get('/admin/stats');
+      const { stats, newest_teachers, newest_students } = response.data;
 
-      // 1. Ambil Statistik
-      console.log("Mengambil stats...");
-      const statsRes = await api.get('/admin/stats');
-      console.log("Respon Stats:", statsRes.data); // LIHAT ISI DATA DI SINI
-
-      // 2. Ambil User
-      const teachersRes = await api.get('/admin/users?role=guru');
-      const studentsRes = await api.get('/admin/users?role=student');
-
+      // Masukkan data backend ke state frontend
       setStats({
-        totalPengajar: statsRes.data.total_teachers || 0,
-        totalSiswa: statsRes.data.total_students || 0,
-        totalPaket: statsRes.data.total_packages || 0,
-        absenHariIni: "0"
+        totalPengajar: stats.total_teachers,
+        totalSiswa: stats.total_students,
+        totalPaket: stats.total_packages,
+        absenHariIni: stats.attendance_today
       });
 
-      setNewestTeachers(teachersRes.data.slice(0, 5));
-      setNewestStudents(studentsRes.data.slice(0, 5));
+      setNewestTeachers(newest_teachers);
+      setNewestStudents(newest_students);
 
     } catch (error) {
-      console.error("ERROR DASHBOARD:", error); // LIHAT ERROR DI SINI
-      if (error.response) {
-          console.log("Status Error:", error.response.status);
-          console.log("Pesan Error:", error.response.data);
-          
-          if (error.response.status === 401) {
-              alert("Sesi habis, silakan login ulang.");
-              navigate('/login');
-          }
-      }
+      console.error("Gagal memuat dashboard:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLogout = () => {
-      localStorage.clear();
-      navigate('/login');
-  };
-
   return (
-    <div className="flex bg-[#F5F7FA] min-h-screen font-sans text-gray-800">
+    <div className="flex h-screen bg-[#F8F9FD] font-sans overflow-hidden">
+      
+      {/* Sidebar Navigasi */}
       <NavigasiAdmin />
 
-      <div className="flex-1 ml-64 p-8">
-        <header className="flex justify-between items-center mb-10">
+      {/* Konten Utama */}
+      <div className="flex-1 flex flex-col h-screen relative ml-64 overflow-y-auto">
+        
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 px-8 py-4 border-b border-gray-100 flex justify-between items-center">
           <div>
-            {/* SAYA UBAH JUDUL INI AGAR KELIHATAN BEDANYA */}
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard (Realtime DB)</h1>
-            <p className="text-gray-500 mt-1 text-sm">Selamat Datang, <span className="font-bold text-[#67051a]">{userName}</span></p>
+            <h1 className="text-2xl font-extrabold text-[#67051a]">Dashboard Overview</h1>
+            <p className="text-sm text-gray-500">Selamat datang kembali, {userName}!</p>
           </div>
-
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <button 
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-3 pl-2 pr-4 py-1.5 bg-white rounded-full shadow-sm border border-gray-100"
-              >
-                <div className="w-9 h-9 bg-[#67051a] rounded-full flex items-center justify-center text-white font-bold">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <ChevronDown size={16} />
-              </button>
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-1 z-50">
-                   <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
-                     <LogOut size={16} /> Keluar
-                   </button>
-                </div>
-              )}
-            </div>
+          <div className="w-10 h-10 bg-[#67051a] rounded-full flex items-center justify-center text-white font-bold shadow-md">
+            {userName.charAt(0)}
           </div>
         </header>
 
-        {isLoading ? (
+        {/* Isi Dashboard */}
+        <div className="p-8">
+          
+          {isLoading ? (
             <div className="h-[60vh] flex flex-col items-center justify-center">
-                <Loader2 className="animate-spin text-[#67051a] mb-4" size={50} />
-                <p>Memuat data...</p>
+              <Loader2 className="animate-spin text-[#67051a] mb-4" size={40} />
+              <p className="text-gray-500">Sedang memuat statistik...</p>
             </div>
-        ) : (
+          ) : (
             <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                    <StatCard title="Total Pengajar" value={stats.totalPengajar} icon={<Users size={24} />} color="bg-blue-500" />
-                    <StatCard title="Total Siswa" value={stats.totalSiswa} icon={<Users size={24} />} color="bg-green-500" />
-                    <StatCard title="Paket Aktif" value={stats.totalPaket} icon={<BookOpen size={24} />} color="bg-orange-500" />
-                    <StatCard title="Absensi" value={stats.absenHariIni} icon={<Calendar size={24} />} color="bg-[#67051a]" />
-                </div>
+              {/* 1. KARTU STATISTIK (4 Kotak Atas) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard 
+                  title="Total Pengajar" 
+                  value={stats.totalPengajar} 
+                  icon={<Users size={24} />} 
+                  color="bg-blue-500"
+                />
+                <StatCard 
+                  title="Total Siswa" 
+                  value={stats.totalSiswa} 
+                  icon={<User size={24} />} 
+                  color="bg-emerald-500"
+                />
+                <StatCard 
+                  title="Paket Aktif" 
+                  value={stats.totalPaket} 
+                  icon={<BookOpen size={24} />} 
+                  color="bg-purple-500"
+                />
+                <StatCard 
+                  title="Absensi Hari Ini" 
+                  value={stats.absenHariIni} 
+                  icon={<Calendar size={24} />} 
+                  color="bg-orange-500"
+                />
+              </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <ActivityTable title="Pengajar Terbaru" data={newestTeachers} type="guru" linkTo="/admin/pengguna" />
-                    <ActivityTable title="Siswa Terbaru" data={newestStudents} type="siswa" linkTo="/admin/pengguna" />
-                </div>
+              {/* 2. TABEL AKTIVITAS TERBARU (2 Kolom Bawah) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Tabel Guru Terbaru */}
+                <ActivityTable 
+                    title="Pengajar Terbaru" 
+                    data={newestTeachers} 
+                    type="guru"
+                    linkTo="/admin/pengguna"
+                />
+
+                {/* Tabel Siswa Terbaru */}
+                <ActivityTable 
+                    title="Siswa Terbaru" 
+                    data={newestStudents} 
+                    type="siswa"
+                    linkTo="/admin/pengguna"
+                />
+              </div>
             </>
-        )}
+          )}
+
+        </div>
       </div>
     </div>
   );
 };
 
-// Sub-components sederhana
+// ==========================================
+// SUB-COMPONENTS (Agar kode rapi)
+// ==========================================
+
 const StatCard = ({ title, value, icon, color }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-xl text-white shadow-lg ${color}`}>{icon}</div>
+  <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col justify-between h-32">
+    <div className="flex justify-between items-start">
+      <div>
+        <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">{title}</h3>
+        <p className="text-3xl font-extrabold text-gray-800">{value}</p>
+      </div>
+      <div className={`p-3 rounded-xl text-white shadow-lg ${color}`}>
+        {icon}
+      </div>
     </div>
-    <h3 className="text-gray-500 text-sm font-medium mb-1">{title}</h3>
-    <p className="text-3xl font-bold text-gray-800">{value}</p>
   </div>
 );
 
 const ActivityTable = ({ title, data, type, linkTo }) => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full">
-    <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-      <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
-      <a href={linkTo} className="text-xs font-bold text-[#67051a]">Lihat Semua</a>
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+    <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+      <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+        {type === 'guru' ? <Users size={18} className="text-blue-500"/> : <User size={18} className="text-emerald-500"/>}
+        {title}
+      </h3>
+      <a href={linkTo} className="text-xs font-bold text-[#67051a] flex items-center gap-1 hover:underline">
+        Lihat Semua <ArrowRight size={12}/>
+      </a>
     </div>
-    <div className="p-2">
+    <div className="p-0">
         <table className="w-full">
             <tbody className="text-sm">
                 {data.length > 0 ? (
                     data.map((item, idx) => (
-                        <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="py-3 px-4 font-medium">{item.name}</td>
-                            <td className="py-3 px-4 text-right text-gray-500">{item.email}</td>
+                        <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition-colors last:border-0">
+                            <td className="py-4 px-6 font-medium text-gray-700">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${type === 'guru' ? 'bg-blue-400' : 'bg-emerald-400'}`}>
+                                        {item.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-800">{item.name}</p>
+                                        <p className="text-xs text-gray-400">{item.email}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="py-4 px-6 text-right text-gray-400 text-xs">
+                                {new Date(item.created_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
+                            </td>
                         </tr>
                     ))
                 ) : (
-                    <tr><td className="py-8 text-center text-gray-400">Belum ada data.</td></tr>
+                    <tr>
+                        <td colSpan="2" className="py-8 text-center text-gray-400 text-sm">
+                            Belum ada data terbaru.
+                        </td>
+                    </tr>
                 )}
             </tbody>
         </table>

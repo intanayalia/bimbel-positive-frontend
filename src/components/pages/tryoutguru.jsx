@@ -7,10 +7,11 @@ import {
     BookOpen, 
     Clock, 
     Edit, 
-    FileText 
+    FileText,
+    X // Icon Close untuk modal
 } from 'lucide-react';
 import NavigasiGuru from '../common/navigasiguru';
-import api from '../../api'; // Import konfigurasi API
+import api from '../../api'; 
 
 const TryoutGuru = () => {
   const navigate = useNavigate();
@@ -19,7 +20,8 @@ const TryoutGuru = () => {
   // 1. STATE MANAGEMENT
   // =========================================
   const [loading, setLoading] = useState(true);
-  const [tryouts, setTryouts] = useState([]); // Data Asli dari API ditampung di sini
+  const [tryouts, setTryouts] = useState([]); 
+  const [courses, setCourses] = useState([]); // State Baru: Menampung Mapel dari DB
   const [searchQuery, setSearchQuery] = useState('');
 
   // State Modal Create
@@ -27,36 +29,40 @@ const TryoutGuru = () => {
   const [formData, setFormData] = useState({
       title: '',
       subject: '',
-      duration: 60, // Default 60 menit
+      duration: 60, 
       status: 'active'
   });
 
   // =========================================
-  // 2. FETCH DATA (READ FROM DATABASE)
+  // 2. FETCH DATA (TRYOUTS & COURSES)
   // =========================================
-  const fetchTryouts = async () => {
+  const fetchData = async () => {
     try {
         setLoading(true);
-        // Memanggil API Laravel: GET /api/teacher/tryouts
-        const response = await api.get('/teacher/tryouts');
-        setTryouts(response.data); // Simpan data asli ke state
+        
+        // A. Ambil Data Tryout
+        const resTryouts = await api.get('/teacher/tryouts');
+        setTryouts(resTryouts.data);
+
+        // B. Ambil Data Kelas (Sebagai Mata Pelajaran)
+        const resCourses = await api.get('/courses');
+        setCourses(resCourses.data);
+
     } catch (error) {
-        console.error("Gagal memuat tryout:", error);
+        console.error("Gagal memuat data:", error);
     } finally {
         setLoading(false);
     }
   };
 
-  // Panggil fetch saat halaman pertama kali dibuka
   useEffect(() => {
-    fetchTryouts();
+    fetchData();
   }, []);
 
   // =========================================
-  // 3. HANDLER ACTIONS (CREATE & DELETE)
+  // 3. HANDLER ACTIONS
   // =========================================
   
-  // Handle Submit Form Buat Tryout
   const handleCreate = async () => {
     if (!formData.title || !formData.subject) {
         alert("Judul dan Mata Pelajaran wajib diisi!");
@@ -64,29 +70,26 @@ const TryoutGuru = () => {
     }
 
     try {
-        // Kirim data ke Backend
         await api.post('/teacher/tryouts', formData);
         
         // Reset Form & Tutup Modal
         setFormData({ title: '', subject: '', duration: 60, status: 'active' });
         setShowModal(false);
         
-        // Refresh Data agar yang baru muncul
-        fetchTryouts(); 
+        // Refresh Data
+        fetchData(); 
         alert("Tryout berhasil dibuat!");
     } catch (error) {
         console.error(error);
-        alert("Gagal membuat tryout. Pastikan Anda login sebagai Guru.");
+        alert("Gagal membuat tryout.");
     }
   };
 
-  // Handle Hapus Tryout
   const handleDelete = async (id) => {
-    if (!window.confirm("Yakin ingin menghapus Tryout ini? Semua soal di dalamnya akan ikut terhapus.")) return;
+    if (!window.confirm("Yakin ingin menghapus Tryout ini?")) return;
 
     try {
         await api.delete(`/teacher/tryouts/${id}`);
-        // Hapus dari state UI agar tidak perlu reload halaman (Optimistic UI)
         setTryouts(prev => prev.filter(t => t.id !== id));
     } catch (error) {
         console.error(error);
@@ -94,17 +97,12 @@ const TryoutGuru = () => {
     }
   };
 
-  // Navigasi ke Halaman Edit Soal
   const handleManageQuestions = (tryoutItem) => {
-    navigate('/isi-tryout-guru', { 
-        state: { 
-            tryoutData: tryoutItem, // Kirim data asli ke halaman edit
-            mode: 'edit' 
-        } 
-    });
+    // Arahkan ke halaman input soal (Sesuaikan route Anda)
+    navigate(`/teacher/tryouts/${tryoutItem.id}/questions`);
   };
 
-  // Filter Pencarian (Client Side Filtering)
+  // Filter Pencarian
   const filteredTryouts = tryouts.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.subject.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,24 +150,23 @@ const TryoutGuru = () => {
             </div>
         ) : (
             <>
-                {/* EMPTY STATE (Jika database kosong) */}
+                {/* EMPTY STATE */}
                 {filteredTryouts.length === 0 && (
                     <div className="text-center py-20 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
                         <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <BookOpen className="text-red-900" size={32} />
                         </div>
                         <p className="text-gray-400 font-bold text-lg">Belum ada Tryout ditemukan.</p>
-                        <p className="text-gray-400 text-sm mb-6">Silakan buat tryout pertama Anda sekarang.</p>
                         <button 
                             onClick={() => setShowModal(true)}
-                            className="text-red-900 font-bold hover:underline"
+                            className="text-red-900 font-bold hover:underline mt-2"
                         >
                             + Tambah Data
                         </button>
                     </div>
                 )}
 
-                {/* TRYOUT GRID (Menampilkan Data Asli) */}
+                {/* TRYOUT GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTryouts.map((item) => (
                         <div key={item.id} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
@@ -233,7 +230,9 @@ const TryoutGuru = () => {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-900 text-white">
               <h3 className="font-bold text-lg">Buat Tryout Baru</h3>
-              <button onClick={() => setShowModal(false)} className="hover:text-gray-200 text-2xl">&times;</button>
+              <button onClick={() => setShowModal(false)} className="hover:text-gray-200">
+                 <X size={24} />
+              </button>
             </div>
 
             {/* Modal Body */}
@@ -250,24 +249,33 @@ const TryoutGuru = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Mata Pelajaran</label>
-                <select 
-                    value={formData.subject}
-                    onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-900 focus:outline-none bg-white"
-                >
-                    <option value="" disabled>Pilih Mapel...</option>
-                    <option value="Matematika">Matematika</option>
-                    <option value="Fisika">Fisika</option>
-                    <option value="Kimia">Kimia</option>
-                    <option value="Biologi">Biologi</option>
-                    <option value="Bahasa Inggris">Bahasa Inggris</option>
-                    <option value="TPS">TPS (Tes Potensi Skolastik)</option>
-                    <option value="Sejarah">Sejarah</option>
-                    <option value="Geografi">Geografi</option>
-                    <option value="Sosiologi">Sosiologi</option>
-                    <option value="Ekonomi">Ekonomi</option>
-                </select>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Mata Pelajaran (Dari Database)</label>
+                <div className="relative">
+                    <select 
+                        value={formData.subject}
+                        onChange={(e) => setFormData({...formData, subject: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-900 focus:outline-none bg-white appearance-none"
+                    >
+                        <option value="" disabled>-- Pilih Mapel --</option>
+                        
+                        {/* BAGIAN DINAMIS: MAPPING DARI DATABASE */}
+                        {courses.length > 0 ? (
+                            courses.map((course) => (
+                                <option key={course.id} value={course.title}>
+                                    {course.title}
+                                </option>
+                            ))
+                        ) : (
+                            <option disabled>Memuat daftar kelas...</option>
+                        )}
+                        
+                    </select>
+                    {/* Icon Panah Kecil (Opsional agar lebih cantik) */}
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-500">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                    </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">*Pilihan diambil dari daftar Kelas yang aktif.</p>
               </div>
 
               <div>
@@ -286,7 +294,7 @@ const TryoutGuru = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Status</label>
                 <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 w-full hover:bg-gray-100">
                         <input 
                             type="radio" 
                             name="status" 
@@ -295,9 +303,9 @@ const TryoutGuru = () => {
                             onChange={() => setFormData({...formData, status: 'active'})}
                             className="text-red-900 focus:ring-red-900"
                         />
-                        Aktif (Tampil di Siswa)
+                        <span className="text-sm font-medium">Aktif (Tampil)</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 w-full hover:bg-gray-100">
                         <input 
                             type="radio" 
                             name="status" 
@@ -306,7 +314,7 @@ const TryoutGuru = () => {
                             onChange={() => setFormData({...formData, status: 'upcoming'})}
                             className="text-red-900 focus:ring-red-900"
                         />
-                        Draft / Akan Datang
+                        <span className="text-sm font-medium">Draft (Sembunyi)</span>
                     </label>
                 </div>
               </div>

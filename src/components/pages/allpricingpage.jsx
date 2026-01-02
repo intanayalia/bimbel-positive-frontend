@@ -1,253 +1,256 @@
 import React, { useState, useEffect } from 'react';
-import Navigasi from '../common/navigasi';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+
+// --- IMPORT COMPONENT ---
+import Navigasi from '../common/navigasi';         // Navbar untuk Tamu (Belum Login)
+import NavigasiSiswa from '../common/navigasisiswa'; // Navbar untuk Siswa (Sudah Login)
 import Footer from '../common/footer';
-// import api from '../../api'; // <-- 1. UNCOMMENT SAAT KONEK LARAVEL
+import api from '../../api';
 
-const SearchIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-);
+// ==========================================
+// 1. HELPER: FORMAT RUPIAH
+// ==========================================
+const formatRupiah = (number) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(number);
+};
 
-const CheckIcon = ({ isDarkBg }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 flex-shrink-0 ${isDarkBg ? 'text-green-400' : 'text-green-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"> {/* UPDATE: Stroke lebih tipis (2) */}
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-);
+// ==========================================
+// 2. SUB-COMPONENT: KARTU PAKET
+// ==========================================
+const PackageCard = ({ id, title, price, duration, description, category, discount, onSelect }) => {
+    // Hitung Harga Diskon
+    const finalPrice = discount > 0 ? price - (price * (discount / 100)) : price;
 
-const PackageCard = ({ title, price, session, features, isFeatured }) => {
     return (
-        <div className={`
-            relative flex flex-col justify-between p-8 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 h-full
-            ${isFeatured 
-                ? 'bg-brand-dark text-white shadow-2xl scale-105 z-10' 
-                : 'bg-white text-gray-800 shadow-lg border border-gray-200 hover:shadow-xl'
-            }
-        `}>
-            <div>
-                <h3 className={`text-2xl font-bold mb-4 ${isFeatured ? 'text-white' : 'text-brand-dark'}`}>
-                    {title}
-                </h3>
-                <div className="flex items-baseline mb-8">
-                    <span className="text-4xl font-bold tracking-tight">
-                        {price}
+        <div className={`relative flex flex-col h-full p-8 bg-white border-2 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${category === 'UTBK' ? 'border-brand-dark ring-4 ring-brand-dark/5' : 'border-gray-100'}`}>
+            
+            {/* Badge Diskon & Kategori */}
+            <div className="absolute top-4 right-4 flex gap-2">
+                {discount > 0 && (
+                    <span className="bg-red-100 text-red-600 text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                        Hemat {discount}%
                     </span>
-                    <span className={`ml-2 text-lg font-medium ${isFeatured ? 'text-gray-200' : 'text-gray-500'}`}>
-                        /{session}
-                    </span>
-                </div>
+                )}
+                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                    {category}
+                </span>
+            </div>
 
-                <hr className={`mb-6 border-opacity-20 ${isFeatured ? 'border-white' : 'border-gray-200'}`} />
-                <ul className="space-y-4 text-left">
-                    {features.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                            <div className="flex-shrink-0">
-                                <CheckIcon isDarkBg={isFeatured} />
-                            </div>
-                            <p className={`ml-3 text-base font-normal ${isFeatured ? 'text-gray-100' : 'text-gray-600'}`}>
-                                {feature}
-                            </p>
-                        </li>
-                    ))}
+            {/* Header Paket */}
+            <div className="mb-6 mt-2">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+                <div className="flex flex-col">
+                    {discount > 0 && (
+                        <span className="text-sm text-gray-400 line-through font-medium">
+                            {formatRupiah(price)}
+                        </span>
+                    )}
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extrabold text-brand-dark">
+                            {formatRupiah(finalPrice)}
+                        </span>
+                        <span className="text-gray-500 font-medium">/ {duration} Hari</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Deskripsi */}
+            <div className="flex-grow border-t border-gray-100 pt-6 mb-8">
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    {description || "Paket belajar intensif dengan materi lengkap dan latihan soal terupdate."}
+                </p>
+                
+                {/* List Fitur Dummy (Bisa disesuaikan nanti) */}
+                <ul className="space-y-3">
+                    <li className="flex items-start gap-3 text-sm text-gray-600">
+                        <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
+                        <span>Akses Materi Video & PDF Lengkap</span>
+                    </li>
+                    <li className="flex items-start gap-3 text-sm text-gray-600">
+                        <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
+                        <span>Akses Tryout Ujian Berkala</span>
+                    </li>
+                    <li className="flex items-start gap-3 text-sm text-gray-600">
+                        <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
+                        <span>Grup Diskusi dengan Mentor</span>
+                    </li>
                 </ul>
             </div>
 
-            <div className="mt-8">
-                <a href="/daftar" className={`
-                    block w-full py-3.5 px-6 rounded-xl text-center font-bold text-lg transition-colors duration-300
-                    ${isFeatured
-                        ? 'bg-white text-brand-dark hover:bg-gray-100' 
-                        : 'bg-transparent border-2 border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-white' 
-                    }
-                `}>
-                    Pilih Paket
-                </a>
-            </div>
+            {/* Tombol Aksi */}
+            <button 
+                onClick={() => onSelect(id)}
+                className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 flex justify-center items-center ${
+                    category === 'UTBK' 
+                    ? 'bg-brand-dark text-white hover:bg-brand-dark-accent' 
+                    : 'bg-white border-2 border-brand-dark text-brand-dark hover:bg-gray-50'
+                }`}
+            >
+                Pilih Paket Ini
+            </button>
         </div>
     );
 };
 
-export default function AllPackagesPage() {
+// ==========================================
+// 3. MAIN PAGE COMPONENT
+// ==========================================
+export default function AllPricingPage() {
+    const navigate = useNavigate();
+    const [packages, setPackages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filterCategory, setFilterCategory] = useState('SEMUA');
     
-    // 1. DATA DUMMY
-    const dummyPackages = [
-        { id: 1, title: "Kelas Reguler SD", price: "Rp 100rb", session: "bulan", is_featured: false, level: "SD", grade: "5", features: ["Matematika & IPA", "2x Seminggu", "Tutor Ramah Anak"] },
-        { id: 2, title: "Kelas Premium SMP", price: "Rp 250rb", session: "bulan", is_featured: true, level: "SMP", grade: "9", features: ["Fokus UNBK", "3x Seminggu", "Konsultasi PR", "Tryout Mingguan"] },
-        { id: 3, title: "Intensif UTBK SMA", price: "Rp 500rb", session: "bulan", is_featured: false, level: "SMA", grade: "12", features: ["Drilling Soal", "Tryout Mingguan", "Bedah Kampus Impian"] },
-        { id: 4, title: "Paket Tematik SD", price: "Rp 150rb", session: "bulan", is_featured: false, level: "SD", grade: "3", features: ["Calistung Lancar", "Metode Fun Learning"] },
-        { id: 5, title: "Privat Fisika SMA", price: "Rp 350rb", session: "sesi", is_featured: false, level: "SMA", grade: "11", features: ["1 on 1 Mentor", "Bedah Rumus Fisika", "Jadwal Fleksibel"] },
-        { id: 6, title: "Persiapan Ujian SMP", price: "Rp 200rb", session: "bulan", is_featured: false, level: "SMP", grade: "8", features: ["Latihan Soal Harian", "Video Pembahasan"] }
-    ];
+    // State untuk cek Login
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // State Management
-    const [packages, setPackages] = useState(dummyPackages);
-    const [loading, setLoading] = useState(false);
+    // --- A. CEK LOGIN & FETCH DATA ---
+    useEffect(() => {
+        // 1. Cek Token di LocalStorage
+        const token = localStorage.getItem('auth_token');
+        setIsLoggedIn(!!token); // Ubah jadi boolean (true jika ada token)
 
-    // Filter State
-    const [filterLevel, setFilterLevel] = useState(""); // SD, SMP, SMA
-    const [filterGrade, setFilterGrade] = useState(""); // 1-12
-    const [searchKeyword, setSearchKeyword] = useState("");
-
-    // LOGIC: Generate Kelas Berdasarkan Tingkat
-    const getGradeOptions = () => {
-        if (filterLevel === "SD") return ["1", "2", "3", "4", "5", "6"];
-        if (filterLevel === "SMP") return ["7", "8", "9"];
-        if (filterLevel === "SMA") return ["10", "11", "12"];
-        return [];
-    };
-
-    // LOGIC: Reset Kelas saat Tingkat Berubah
-    const handleLevelChange = (e) => {
-        setFilterLevel(e.target.value);
-        setFilterGrade(""); // Reset kelas agar valid
-    };
-
-    // --- FUNGSI CARI (BACKEND READY) ---
-    const fetchFilteredPackages = () => {
-        setLoading(true);
-        console.log("Fetching API with:", { level: filterLevel, grade: filterGrade, q: searchKeyword });
-
-        // A. SIMULASI FRONTEND
-        setTimeout(() => {
-            const filtered = dummyPackages.filter(pkg => {
-                const matchLevel = filterLevel ? pkg.level === filterLevel : true;
-                const matchGrade = filterGrade ? pkg.grade === filterGrade : true;
-                const matchSearch = searchKeyword ? pkg.title.toLowerCase().includes(searchKeyword.toLowerCase()) : true;
-                return matchLevel && matchGrade && matchSearch;
-            });
-            setPackages(filtered);
-            setLoading(false);
-        }, 600);
-
-        // B. KODE REAL UNTUK BACKEND
-        /*
-        const params = new URLSearchParams();
-        if (filterLevel) params.append('level', filterLevel);
-        if (filterGrade) params.append('grade', filterGrade);
-        if (searchKeyword) params.append('q', searchKeyword);
-
-        api.get(`/packages?${params.toString()}`)
-            .then(res => {
-                setPackages(res.data);
+        // 2. Ambil Data Paket
+        const fetchPackages = async () => {
+            try {
+                // Endpoint Public (Pastikan di api.php route ini tidak kena middleware auth)
+                const response = await api.get('/packages');
+                setPackages(response.data);
+            } catch (error) {
+                console.error("Gagal mengambil data paket:", error);
+            } finally {
                 setLoading(false);
-            })
-            .catch(err => {
-                console.error("API Error:", err);
-                setLoading(false);
+            }
+        };
+
+        fetchPackages();
+    }, []);
+
+    // --- B. LOGIKA PEMBELIAN ---
+    const handleBuyPackage = async (packageId) => {
+        // 1. Jika Belum Login -> Arahkan ke Login
+        if (!isLoggedIn) {
+            alert("Silakan login atau daftar terlebih dahulu untuk membeli paket.");
+            navigate('/login');
+            return;
+        }
+
+        // 2. Konfirmasi Pembelian
+        const selectedPkg = packages.find(p => p.id === packageId);
+        if(!window.confirm(`Beli paket "${selectedPkg.nama_paket}" sekarang?`)) {
+            return;
+        }
+
+        // 3. Proses Transaksi
+        try {
+            // Hitung harga final
+            const finalPrice = selectedPkg.diskon > 0 
+                ? selectedPkg.harga - (selectedPkg.harga * (selectedPkg.diskon / 100)) 
+                : selectedPkg.harga;
+
+            const res = await api.post('/payment/charge', {
+                product_name: selectedPkg.nama_paket,
+                amount: finalPrice,
+                package_id: selectedPkg.id
             });
-        */
+
+            // Redirect ke Detail Pembayaran
+            navigate('/pembayaran/detail', { 
+                state: { transaction: res.data.transaction } 
+            });
+
+        } catch (error) {
+            console.error("Transaksi Gagal:", error);
+            alert("Gagal memproses pembelian. Silakan coba lagi.");
+        }
     };
+
+    // --- C. LOGIKA FILTER ---
+    const filteredPackages = filterCategory === 'SEMUA' 
+        ? packages 
+        : packages.filter(pkg => pkg.kategori === filterCategory);
 
     return (
-        <div className="bg-brand-light-bg font-sans min-h-screen flex flex-col justify-between">
-            <Navigasi />
-
-            <main className="py-24 mb-auto">
-                <div className="container mx-auto px-6">
+        <div className="bg-brand-light-bg font-sans min-h-screen flex flex-col">
+            
+            {/* NAVIGASI DINAMIS:
+                Jika user Login -> Tampilkan NavigasiSiswa (Ada Avatar & Nama)
+                Jika user Tamu  -> Tampilkan Navigasi Biasa (Tombol Masuk/Daftar)
+            */}
+            {isLoggedIn ? <NavigasiSiswa /> : <Navigasi />}
+            
+            <main className="flex-grow pt-28 pb-20 px-6">
+                <div className="container mx-auto max-w-6xl">
                     
-                    {/* Header */}
-                    <div className="text-center mb-10">
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-brand-dark mb-4">
-                            Cari Paket Belajar
+                    {/* Header Section */}
+                    <div className="text-center mb-12">
+                        <span className="text-brand-dark font-bold tracking-wider uppercase text-sm mb-2 block">Harga & Paket</span>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">
+                            Investasi Terbaik untuk Masa Depanmu
                         </h1>
                         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                            Gunakan filter di bawah untuk menemukan paket yang paling sesuai dengan jenjangmu.
+                            Pilih paket belajar yang sesuai dengan kebutuhan dan target impianmu. Transparan, hemat, dan berkualitas.
                         </p>
                     </div>
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12 bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                        <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                            <div className="w-full sm:w-48">
-                                <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Jenjang</label>
-                                <select 
-                                    value={filterLevel}
-                                    onChange={handleLevelChange}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-brand-dark focus:ring-2 focus:ring-brand-dark/20 outline-none transition-all cursor-pointer font-medium text-gray-700 appearance-none"
-                                >
-                                    <option value="">Semua Jenjang</option>
-                                    <option value="SD">SD</option>
-                                    <option value="SMP">SMP</option>
-                                    <option value="SMA">SMA</option>
-                                </select>
-                            </div>
-                            <div className="w-full sm:w-48">
-                                <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Kelas</label>
-                                <select 
-                                    value={filterGrade}
-                                    onChange={(e) => setFilterGrade(e.target.value)}
-                                    disabled={!filterLevel}
-                                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all font-medium appearance-none ${
-                                        !filterLevel 
-                                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
-                                        : 'bg-gray-50 text-gray-700 border-gray-300 focus:bg-white focus:border-brand-dark focus:ring-2 focus:ring-brand-dark/20 cursor-pointer'
-                                    }`}
-                                >
-                                    <option value="">Semua Kelas</option>
-                                    {getGradeOptions().map((grade) => (
-                                        <option key={grade} value={grade}>Kelas {grade}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="flex w-full xl:w-auto gap-2 items-end">
-                            <div className="relative flex-grow xl:w-80">
-                                <label className="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Kata Kunci</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                        <SearchIcon />
-                                    </div>
-                                    <input 
-                                        type="text"
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && fetchFilteredPackages()} 
-                                        placeholder="Cari mapel (cth: Matematika)..."
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-brand-dark focus:ring-2 focus:ring-brand-dark/20 outline-none transition-all"
-                                    />
-                                </div>
-                            </div>
-                            <button 
-                                onClick={fetchFilteredPackages}
-                                className="bg-brand-dark text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-dark-accent transition-all shadow-md hover:shadow-lg flex-shrink-0 h-[50px] mt-auto flex items-center gap-2"
+
+                    {/* Filter Kategori */}
+                    <div className="flex justify-center gap-3 mb-12 flex-wrap">
+                        {['SEMUA', 'SD', 'SMP', 'SMA', 'UTBK'].map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setFilterCategory(cat)}
+                                className={`px-6 py-2 rounded-full font-bold transition-all ${
+                                    filterCategory === cat 
+                                    ? 'bg-brand-dark text-white shadow-lg' 
+                                    : 'bg-white text-gray-500 hover:bg-gray-100'
+                                }`}
                             >
-                                Cari
+                                {cat}
                             </button>
-                        </div>
+                        ))}
                     </div>
-                    
+
+                    {/* Content: Loading vs Data */}
                     {loading ? (
-                        <div className="text-center py-20">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-dark border-r-transparent"></div>
-                            <p className="mt-4 text-gray-500">Mencari paket terbaik...</p>
-                        </div>
-                    ) : packages.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
-                            {packages.map((pkg) => (
-                                <PackageCard
-                                    key={pkg.id}
-                                    title={pkg.title}
-                                    price={pkg.price}
-                                    session={pkg.session}
-                                    features={pkg.features}
-                                    isFeatured={pkg.is_featured}
-                                />
-                            ))}
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <Loader2 className="animate-spin text-brand-dark mb-4" size={40} />
+                            <p className="text-gray-500">Menyiapkan paket terbaik untukmu...</p>
                         </div>
                     ) : (
-                        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-                            <p className="text-xl font-bold text-gray-800">Paket tidak ditemukan 😔</p>
-                            <p className="text-gray-500 mt-2">Coba ganti filter tingkat atau kata kunci pencarianmu.</p>
-                            <button 
-                                onClick={() => { setFilterLevel(""); setFilterGrade(""); setSearchKeyword(""); fetchFilteredPackages(); }}
-                                className="mt-4 text-brand-dark font-bold hover:underline"
-                            >
-                                Reset Filter
-                            </button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+                            {filteredPackages.length > 0 ? (
+                                filteredPackages.map((pkg) => (
+                                    <PackageCard
+                                        key={pkg.id}
+                                        id={pkg.id}
+                                        // Mapping Data Database ke Props Component
+                                        title={pkg.nama_paket}      
+                                        price={pkg.harga}           
+                                        duration={pkg.durasi}       
+                                        description={pkg.deskripsi} 
+                                        category={pkg.kategori}     
+                                        discount={pkg.diskon}       
+                                        onSelect={handleBuyPackage}
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-16 bg-white rounded-3xl border border-dashed border-gray-300">
+                                    <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                    <h3 className="text-lg font-bold text-gray-900">Paket Tidak Ditemukan</h3>
+                                    <p className="text-gray-500">Belum ada paket untuk kategori {filterCategory} saat ini.</p>
+                                </div>
+                            )}
                         </div>
                     )}
-
                 </div>
             </main>
-
+            
             <Footer />
         </div>
     );

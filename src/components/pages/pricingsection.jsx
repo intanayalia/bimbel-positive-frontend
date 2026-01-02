@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-// import api from '../../api'; // <-- 1. UNCOMMENT INI NANTI
+import { Loader2 } from 'lucide-react';
+import api from '../../api'; 
 
-// --- ICONS ---
+// ==========================================
+// 1. SUB-COMPONENTS
+// ==========================================
+
 const CheckIcon = ({ isDarkBg }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 flex-shrink-0 ${isDarkBg ? 'text-green-400' : 'text-green-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -20,10 +24,16 @@ export const PricingCard = ({ title, price, session, features, isFeatured }) => 
         <div className={`
             relative flex flex-col justify-between p-8 rounded-2xl transition-all duration-300 transform hover:-translate-y-2 w-full md:w-auto h-full
             ${isFeatured 
-                ? 'bg-brand-dark text-white shadow-2xl scale-105 z-10' 
+                ? 'bg-brand-dark text-white shadow-2xl scale-105 z-10 border border-transparent' 
                 : 'bg-white text-gray-800 shadow-lg border border-gray-200 hover:shadow-xl'
             }
         `}>
+            {isFeatured && (
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-yellow-400 text-brand-dark px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">
+                    Paling Laris
+                </div>
+            )}
+
             <div>
                 <h3 className={`text-2xl font-extrabold mb-4 ${isFeatured ? 'text-white' : 'text-brand-dark'}`}>
                     {title}
@@ -43,7 +53,7 @@ export const PricingCard = ({ title, price, session, features, isFeatured }) => 
                 </ul>
             </div>
             <div className="mt-8">
-                <Link to="/daftar-paket" className={`block w-full py-3.5 px-6 rounded-xl text-center font-bold text-lg transition-colors duration-300 ${isFeatured ? 'bg-white text-brand-dark hover:bg-gray-100' : 'bg-transparent border-2 border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-white'}`}>
+                <Link to="/pricing" className={`block w-full py-3.5 px-6 rounded-xl text-center font-bold text-lg transition-colors duration-300 ${isFeatured ? 'bg-white text-brand-dark hover:bg-gray-100' : 'bg-transparent border-2 border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-white'}`}>
                     Pilih Paket
                 </Link>
             </div>
@@ -51,35 +61,52 @@ export const PricingCard = ({ title, price, session, features, isFeatured }) => 
     );
 };
 
+// ==========================================
+// 2. MAIN COMPONENT
+// ==========================================
+
 export default function PricingSection() {
     
-    // DATA DUMMY (Untuk Tampilan Awal)
-    const initialPackages = [
-        {
-            id: 1, title: "Kelas Reguler", price: "Rp 150rb", session: "sesi", is_featured: false,
-            features: ["Maksimal 10 Siswa", "Akses Materi Lengkap", "2x Pertemuan / Minggu", "Konsultasi PR Harian"]
-        },
-        {
-            id: 2, title: "Kelas Premium", price: "Rp 250rb", session: "sesi", is_featured: true,
-            features: ["Maksimal 5 Siswa", "Akses Materi & Rekaman", "3x Pertemuan / Minggu", "Konsultasi PR Prioritas", "Tryout & Analisis Nilai"]
-        },
-        {
-            id: 3, title: "Kelas Privat", price: "Rp 350rb", session: "sesi", is_featured: false,
-            features: ["1 on 1 dengan Mentor", "Jadwal Fleksibel", "Fokus Materi Khusus", "Konsultasi PR Kapan Saja", "Garansi Peningkatan Nilai"]
-        }
-    ];
+    const [packages, setPackages] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const [packages, setPackages] = useState(initialPackages);
-
-    // 2. AREA BACKEND (Tinggal Uncomment)
-    /*
     useEffect(() => {
-        // API: Ambil 3 paket unggulan saja
-        api.get('/packages?featured=true&limit=3')
-            .then(res => setPackages(res.data))
-            .catch(err => console.error(err));
+        const fetchPackages = async () => {
+            try {
+                const response = await api.get('/packages');
+                setPackages(response.data);
+            } catch (error) {
+                console.error("Gagal mengambil data paket:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPackages();
     }, []);
-    */
+
+    // Helper: Generate fitur berdasarkan nama paket
+    const getFeatures = (pkgName) => {
+        const name = (pkgName || "").toLowerCase();
+        
+        if (name.includes('privat')) {
+            return ["1 on 1 dengan Mentor", "Jadwal Fleksibel", "Fokus Materi Khusus", "Konsultasi Kapan Saja", "Garansi Nilai"];
+        } else if (name.includes('premium')) {
+            return ["Maksimal 5 Siswa", "Akses Materi & Rekaman", "3x Pertemuan / Minggu", "Konsultasi Prioritas", "Analisis Nilai"];
+        } else {
+            return ["Maksimal 10 Siswa", "Akses Materi Lengkap", "2x Pertemuan / Minggu", "Konsultasi Harian"];
+        }
+    };
+
+    // Helper: Format Rupiah
+    const formatRupiah = (price) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(price || 0);
+    };
 
     return (
         <section className="py-20 bg-white">
@@ -92,26 +119,59 @@ export default function PricingSection() {
                         Kami menyediakan berbagai pilihan kelas yang bisa disesuaikan dengan gaya belajar dan budget kamu.
                     </p>
                 </div>
-                <div className="flex flex-col lg:flex-row items-center justify-center gap-8 max-w-7xl mx-auto">
-                    {packages.map((pkg, index) => (
-                        <div key={pkg.id || index} className="w-full lg:w-auto lg:flex-1 h-full">
-                             <PricingCard
-                                title={pkg.title}
-                                price={pkg.price}
-                                session={pkg.session}
-                                features={pkg.features}
-                                isFeatured={pkg.is_featured} // Pastikan backend pakai nama field ini
-                            />
-                        </div>
-                    ))}
-                    <Link 
-                        to="/pricing" 
-                        className="flex-shrink-0 w-14 h-14 bg-brand-dark rounded-full flex items-center justify-center hover:bg-brand-dark-accent transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 mt-4 lg:mt-0 lg:ml-4"
-                        title="Lihat Semua Paket"
-                    >
-                        <ArrowRightIcon />
-                    </Link>
-                </div>
+
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <Loader2 className="animate-spin text-brand-dark w-10 h-10" />
+                    </div>
+                ) : (
+                    <div className="flex flex-col lg:flex-row items-stretch justify-center gap-8 max-w-7xl mx-auto">
+                        {packages.length > 0 ? (
+                            packages.slice(0, 3).map((pkg, index) => {
+                                
+                                // === [PERBAIKAN UTAMA DI SINI] ===
+                                // Menggunakan key yang sama dengan AllPricingPage.jsx
+                                const safeName = pkg.nama_paket || "Paket Bimbel"; 
+                                const safePrice = pkg.harga || 0;
+                                const safeDuration = pkg.durasi || "Bulan";
+
+                                // Cek Unggulan (Misal: Premium atau Diskon > 0)
+                                const isFeatured = index === 1 || safeName.toLowerCase().includes('premium') || (pkg.diskon > 0);
+                                
+                                // Hitung harga diskon jika ada (Agar tampilan sesuai realita)
+                                const finalPrice = pkg.diskon > 0 
+                                    ? safePrice - (safePrice * (pkg.diskon / 100)) 
+                                    : safePrice;
+
+                                return (
+                                    <div key={pkg.id} className="w-full lg:w-1/3 flex">
+                                         <PricingCard
+                                            title={safeName} 
+                                            price={formatRupiah(finalPrice)}
+                                            session={safeDuration} 
+                                            features={getFeatures(safeName)}
+                                            isFeatured={isFeatured}
+                                        />
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="text-center w-full py-10 bg-gray-50 rounded-xl">
+                                <p className="text-gray-500">Belum ada paket tersedia saat ini.</p>
+                            </div>
+                        )}
+
+                        {packages.length > 3 && (
+                            <Link 
+                                to="/pricing" 
+                                className="flex-shrink-0 w-14 h-14 bg-brand-dark rounded-full flex items-center justify-center hover:bg-brand-dark-accent transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 mt-4 lg:mt-auto lg:self-center lg:ml-4"
+                                title="Lihat Semua Paket"
+                            >
+                                <ArrowRightIcon />
+                            </Link>
+                        )}
+                    </div>
+                )}
             </div>
         </section>
     );
